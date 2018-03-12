@@ -281,7 +281,8 @@ check_traffic_against_limits () {
 }
 get_traffic_from_iptables () {
         echo "$(iptables -nvx -L $SS_IN_RULES)" "$(iptables -nvx -L $SS_OUT_RULES)" |
-        sed -nr '/ [sd]pt:[0-9]{1,5}$/ s/[sd]pt:([0-9]{1,5})/\1/p' |
+        sed -nr 's/[sd]pt:([0-9]{1,5})/\1/p' |
+	sed 's/  Chain ssoutput (1 references)//p' |
         awk '
         {
            trans=$2;
