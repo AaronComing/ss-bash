@@ -218,13 +218,12 @@ add_user () {
     PWORD=$2
     TLIMIT=$3
     TLIMIT=`bytes2gb $TLIMIT`
-    TIME_START=`date +%s`
-    TIME_END=$[$4*24*60*60+$TIME_START]
+    DATE_END=`date -d "+$4 day" +%Y-%m-%d`
     if [ ! -e $USER_FILE ]; then
         echo "\
 # 以空格、制表符分隔
-# 端口 密码 流量限制 创建时间 时间限制
-# 2345 abcde 1000000 1520846602 1520846603" > $USER_FILE;
+# 端口 密码 流量限制 时间限制
+# 2345 abcde 1000000 1520846603" > $USER_FILE;
     fi
     cat $USER_FILE |
     awk '
@@ -233,7 +232,7 @@ add_user () {
     }'
     if [ $? -eq 0 ]; then
         echo "\
-$PORT $PWORD $TLIMIT $TIME_START $TIME_END" >> $USER_FILE;
+$PORT $PWORD $TLIMIT $DATE_END" >> $USER_FILE;
     else
         echo "用户已存在!"
         return 1

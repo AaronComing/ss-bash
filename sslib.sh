@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 # 流量采样间隔,单位为秒
-INTERVEL=300
+INTERVEL=30
 # 指定Shadowsocks程序文件
 SSSERVER=ssserver
 
@@ -175,7 +175,7 @@ calc_remaining () {
                     printf("(%.2fMB)", mb);
                 } else {
                     kb=bytes/(1024*1.0);
-                    printf("(%.2fKB)", kb);
+                    printf("%.2fKB", kb);
                 }
             }
         }
@@ -193,6 +193,7 @@ calc_remaining () {
                 user[i++]=port;
                 limit=$3;
                 limits[port]=limit
+                maturity[port]=$4;
             }
         }
         if(FILENAME=="'$TRAFFIC_LOG'"){
@@ -202,37 +203,33 @@ calc_remaining () {
         }
     }
     END {
-        printf("# port limit(in_TB/GB/MB/KB) used(in_TB/GB/MB/KB) remaining(in_TB/GB/MB/KB)\n");
+        printf("port\tlimit\tused\tremaining\tmateurity\n");
         for(j=1;j<i;j++) {
             port=user[j];
             printf("%-5d\t", port);
            
             limit=limits[port]
-            printf("%s", limit);
             print_in_gb(limit);
             printf("\t");
             totallim+=limit;
             
             used=uta[port];
-            printf("%.0f", used);
             print_in_gb(used);
             printf("\t");
             totalused+=used;
             
             remaining=limits[port]-uta[port];
-            printf("%.0f", remaining);
             print_in_gb(remaining);
-            printf("\n");
+            printf("\t");
             totalrem+=remaining;
+
+            printf("%s\n", maturity[port]);
         }
             printf("%s\t", "Total");
-            printf("%.0f", totallim);
             print_in_gb(totallim);
             printf("\t");
-            printf("%.0f", totalused);
             print_in_gb(totalused);
             printf("\t");
-            printf("%.0f", totalrem);
             print_in_gb(totalrem);
             printf("\n");
         
@@ -279,6 +276,13 @@ check_traffic_against_limits () {
         fi
     done
 }
+
+check_date_against_limit () {
+# 检测用户是否过期
+
+    
+}
+
 get_traffic_from_iptables () {
         echo "$(iptables -nvx -L $SS_IN_RULES)" "$(iptables -nvx -L $SS_OUT_RULES)" |
         sed -nr 's/[sd]pt:([0-9]{1,5})/\1/p' |
