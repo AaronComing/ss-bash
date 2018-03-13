@@ -585,6 +585,44 @@ reset_used () {
     # 更新流量记录文件
     calc_remaining
 }
+add_limit () {
+    echo $1 $2
+    if [ "$#" -ne 2 ]; then
+        wrong_para_prompt;
+        return 1
+    fi
+    PORT=$1
+    if check_port_range $PORT; then
+        :
+    else
+        wrong_para_prompt;
+        return 1
+    fi
+    TLIMIT=$2
+    TLIMIT=`bytes2gb $TLIMIT`
+    if [ ! -e $USER_FILE ]; then
+        echo "目前还无用户，请先添加用户"
+        return 1
+    fi
+    if grep -q "^\s*$PORT\s" $USER_FILE; then
+        cat $USER_FILE |
+        awk '
+        {
+            if($1=='$PORT') {
+                printf("'$PORT' %s %d %s\n", $2, $3+'$TLIMIT', $4);
+            } else {
+                print $0
+            }
+        }' > $USER_FILE.tmp;
+        mv $USER_FILE.tmp $USER_FILE
+        # 更新流量记录文件
+        update_or_create_traffic_file_from_users
+        calc_remaining
+    else
+        echo "此用户不存在!"
+        return 1
+    fi
+}
 
 if [ "$#" -eq 0 ]; then
     usage
@@ -668,6 +706,10 @@ case $1 in
     reset_all_used )
         shift
         reset_used
+        ;;
+    add_limit )
+        shift
+        add_limit $1 $2
         ;;
     start )
         start_ss 
