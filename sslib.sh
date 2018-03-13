@@ -39,6 +39,7 @@ SSSERVER_PID=$TMPDIR/ssserver.pid
 SSCOUNTER_PID=$TMPDIR/sscounter.pid
 
 TRA_FORMAT='%-5d\t%.0f\n'
+DATE_FORMAT='%Y-%m-%d'
 TRAFFIC_LOG=$DIR/traffic.log
 IPT_TRA_LOG=$TMPDIR/ipt_tra.log
 MIN_TRA_LOG=$TMPDIR/min_tra.log
@@ -164,15 +165,15 @@ calc_remaining () {
     function print_in_gb(bytes) {
         tb=bytes/(1024*1024*1024*1024*1.0);
         if(tb>=1||tb<=-1) {
-            printf("(%.2fTB)", tb);
+            printf("%.2fTB", tb);
         } else {
             gb=bytes/(1024*1024*1024*1.0);
             if(gb>=1||gb<=-1) {
-                printf("(%.2fGB)", gb);
+                printf("%.2fGB", gb);
             } else {
                 mb=bytes/(1024*1024*1.0);
                 if(mb>=1||mb<=-1) {
-                    printf("(%.2fMB)", mb);
+                    printf("%.2fMB", mb);
                 } else {
                     kb=bytes/(1024*1.0);
                     printf("%.2fKB", kb);
@@ -223,7 +224,7 @@ calc_remaining () {
             printf("\t");
             totalrem+=remaining;
 
-            printf("%s\n", maturity[port]);
+            printf("%s\n", strftime("'$DATE_FORMAT'", maturity[port]));
         }
             printf("%s\t", "Total");
             print_in_gb(totallim);
@@ -279,6 +280,35 @@ check_traffic_against_limits () {
 
 check_date_against_limit () {
 # 检测用户是否过期
+    ports_2ban=`awk '
+    BEGIN {
+        i=1;
+        date_now=systime();
+    }
+    {
+        if(FILENAME=="'$USER_FILE'"){
+            if($0 !~ /^#|^\s*$/){
+                port=$1;
+                user[i++]=port;
+                date_end[port]=$4
+            }
+        }
+    }
+    END {
+        for(j=1;j<i;j++) {
+            port=user[j];
+            if(date_now > date_end[port]) print port;
+        }
+    }' $USER_FILE` 
+    for p in $ports_2ban; do
+        if grep -q $p $PORTS_ALREADY_BAN; then
+            continue;
+        else 
+            del_rules $p
+            add_reject_rules $p
+            echo $p >> $PORTS_ALREADY_BAN
+        fi
+    done
 
     
 }

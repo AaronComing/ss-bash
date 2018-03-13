@@ -218,7 +218,7 @@ add_user () {
     PWORD=$2
     TLIMIT=$3
     TLIMIT=`bytes2gb $TLIMIT`
-    DATE_END=`date -d "+$4 day" +%Y-%m-%d`
+    DATE_END=`date -d "+$4 day" +%s`
     if [ ! -e $USER_FILE ]; then
         echo "\
 # 以空格、制表符分隔
