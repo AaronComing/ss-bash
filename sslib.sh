@@ -47,6 +47,7 @@ PORTS_ALREADY_BAN=$TMPDIR/ports_already_ban.tmp
 
 SS_IN_RULES=ssinput
 SS_OUT_RULES=ssoutput
+SS_MARK=MARK
 
 del_ipt_chains () {
     iptables -F $SS_IN_RULES
@@ -70,6 +71,11 @@ add_rules () {
     iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
     iptables -A $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
     iptables -A $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
+
+    iptables -A $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK --set-mark 5
+    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK --set-mark 5
+    iptables -A $SS_IN_RULES -p udp --dport $PORT -j $SS_MARK  --set-mark 5
+    iptables -A $SS_OUT_RULES -p udp --sport $PORT -j $SS_MARK  --set-mark 5
 }
 
 add_reject_rules () {
@@ -78,6 +84,11 @@ add_reject_rules () {
     iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j REJECT
     iptables -A $SS_IN_RULES -p udp --dport $PORT -j REJECT
     iptables -A $SS_OUT_RULES -p udp --sport $PORT -j REJECT
+
+#    iptables -D $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK
+#    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK
+#    iptables -D $SS_IN_RULES -p udp --dport $PORT -j $SS_MARK
+#    iptables -D $SS_OUT_RULES -p udp --sport $PORT -j $SS_MARK
 }
 
 del_rules () {
@@ -86,6 +97,11 @@ del_rules () {
     iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
     iptables -D $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
     iptables -D $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
+    
+    iptables -D $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK --set-mark 5
+    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK --set-mark 5
+    iptables -D $SS_IN_RULES -p udp --dport $PORT -j $SS_MARK --set-mark 5
+    iptables -D $SS_OUT_RULES -p udp --sport $PORT -j $SS_MARK --set-mark 5
 }
 
 del_reject_rules () {
@@ -94,6 +110,8 @@ del_reject_rules () {
     iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j REJECT
     iptables -D $SS_IN_RULES -p udp --dport $PORT -j REJECT
     iptables -D $SS_OUT_RULES -p udp --sport $PORT -j REJECT
+
+    sed -i "/^$1$/d" $PORTS_ALREADY_BAN
 }
 
 list_rules () {

@@ -52,3 +52,5 @@
         ssadmin.sh reset_all_limit
     显示已添加的iptables规则：
         ssadmin.sh lrules
+    添加流量：
+        ssadmin.sh add_limit [port <limit>]

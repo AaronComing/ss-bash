@@ -36,6 +36,7 @@ add_new_rules
 calc_remaining
 > $PORTS_ALREADY_BAN
 check_traffic_against_limits
+check_date_against_limit
 
 ISFIRST=1;
 while true; do

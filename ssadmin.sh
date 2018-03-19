@@ -345,7 +345,7 @@ change_passwd () {
         awk '
         {
             if($1=='$PORT') {
-                printf("'$PORT' '$PWORD' %s\n", $3);
+                printf("'$PORT' '$PWORD' %s %s\n", $3, $4);
             } else {
                 print $0
             }
@@ -615,6 +615,11 @@ add_limit () {
             }
         }' > $USER_FILE.tmp;
         mv $USER_FILE.tmp $USER_FILE
+        # 更新流量规则
+        if grep -q "^$1$" $PORTS_ALREADY_BAN; then
+            add_rules $1
+            del_reject_rules $1
+        fi
         # 更新流量记录文件
         update_or_create_traffic_file_from_users
         calc_remaining
