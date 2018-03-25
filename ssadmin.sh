@@ -203,8 +203,16 @@ check_port_range () {
         return 1
     fi
 }
+check_limit_type () {
+    TYPE=$1
+    if [[ "$TYPE" == "t1" ]] || [[ "$TYPE" == "t2" ]] ; then
+        return 1
+    else
+        return 0
+    fi
+}
 add_user () {
-    if [ "$#" -ne 4 ]; then
+    if [ "$#" -ne 5 ]; then
         wrong_para_prompt;
         return 1
     fi
@@ -215,6 +223,13 @@ add_user () {
         wrong_para_prompt;
         return 1
     fi
+    LIMIT_TYPE=$5
+#    if check_limit_type $LIMIT_TYPE; then
+#        :
+#    else
+#        wrong_para_prompt;
+#        return 1
+#    fi
     PWORD=$2
     TLIMIT=$3
     TLIMIT=`bytes2gb $TLIMIT`
@@ -232,7 +247,7 @@ add_user () {
     }'
     if [ $? -eq 0 ]; then
         echo "\
-$PORT $PWORD $TLIMIT $DATE_END" >> $USER_FILE;
+$PORT $PWORD $TLIMIT $DATE_END $LIMIT_TYPE" >> $USER_FILE;
     else
         echo "用户已存在!"
         return 1
@@ -656,7 +671,7 @@ fi
 case $1 in
     add )
         shift
-        add_user $1 $2 $3 $4
+        add_user $1 $2 $3 $4 $5
         ;;
     del )
         shift

@@ -49,6 +49,7 @@ SS_IN_RULES=ssinput
 SS_OUT_RULES=ssoutput
 SS_MARK=MARK
 
+
 del_ipt_chains () {
     iptables -F $SS_IN_RULES
     iptables -F $SS_OUT_RULES
@@ -67,15 +68,26 @@ init_ipt_chains () {
 
 add_rules () {
     PORT=$1;
-    iptables -A $SS_IN_RULES -p tcp --dport $PORT -j ACCEPT
-    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
-    iptables -A $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
-    iptables -A $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
+    LIMIT_TYPE=`grep "^\s*$PORT\s" $USER_FILE | awk '{print $5}'`
+    SPEED=0
+    if [[ "$LIMIT_TYPE" = "t1" ]] ; then
+        SPEED=1
+    elif [[ "$LIMIT_TYPE" = "t2" ]] ; then
+        SPEED=10
+    elif [[ "$LIMIT_TYPE" = "t3" ]] ; then
+        SPEED=50
+    fi
+    iptables -A $SS_IN_RULES -p tcp --dport $PORT -m limit --limit $SPEED/s --limit-burst=1000 -j ACCEPT -i eth0
+    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -m limit --limit $SPEED/s --limit-burst=1000 -j ACCEPT -o eth0
+#    iptables -A $SS_IN_RULES -p tcp --dport $PORT -j ACCEPT
+#    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
+    iptables -A $SS_IN_RULES -p udp --dport $PORT -m limit --limit $SPEED/s -j ACCEPT
+    iptables -A $SS_OUT_RULES -p udp --sport $PORT -m limit --limit $SPEED/s -j ACCEPT
 
-    iptables -A $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK --set-mark 5
-    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK --set-mark 5
-    iptables -A $SS_IN_RULES -p udp --dport $PORT -j $SS_MARK  --set-mark 5
-    iptables -A $SS_OUT_RULES -p udp --sport $PORT -j $SS_MARK  --set-mark 5
+#    iptables -A $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK --set-mark 3
+#    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK --set-mark 3
+#    iptables -A $SS_IN_RULES -p udp --dport $PORT -j $SS_MARK  --set-mark 3
+#    iptables -A $SS_OUT_RULES -p udp --sport $PORT -j $SS_MARK  --set-mark 3
 }
 
 add_reject_rules () {
@@ -84,24 +96,28 @@ add_reject_rules () {
     iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j REJECT
     iptables -A $SS_IN_RULES -p udp --dport $PORT -j REJECT
     iptables -A $SS_OUT_RULES -p udp --sport $PORT -j REJECT
-
-#    iptables -D $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK
-#    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK
-#    iptables -D $SS_IN_RULES -p udp --dport $PORT -j $SS_MARK
-#    iptables -D $SS_OUT_RULES -p udp --sport $PORT -j $SS_MARK
 }
 
 del_rules () {
     PORT=$1;
-    iptables -D $SS_IN_RULES -p tcp --dport $PORT -j ACCEPT
-    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
-    iptables -D $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
-    iptables -D $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
+    LIMIT_TYPE=`grep "^\s*$PORT\s" $USER_FILE | awk '{print $5}'`
+    SPEED=0
+    if [[ "$LIMIT_TYPE" = "t1" ]] ; then
+        SPEED=1
+    elif [[ "$LIMIT_TYPE" = "t2" ]] ; then
+        SPEED=10
+    elif [[ "$LIMIT_TYPE" = "t3" ]] ; then
+        SPEED=50
+    fi
+    iptables -D $SS_IN_RULES -p tcp --dport $PORT -m limit --limit $SPEED/s --limit-burst=1000 -j ACCEPT -i eth0
+    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -m limit --limit $SPEED/s --limit-burst=1000 -j ACCEPT -o eth0
+    iptables -D $SS_IN_RULES -p udp --dport $PORT -m limit --limit $SPEED/s -j ACCEPT
+    iptables -D $SS_OUT_RULES -p udp --sport $PORT -m limit --limit $SPEED/s -j ACCEPT
     
-    iptables -D $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK --set-mark 5
-    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK --set-mark 5
-    iptables -D $SS_IN_RULES -p udp --dport $PORT -j $SS_MARK --set-mark 5
-    iptables -D $SS_OUT_RULES -p udp --sport $PORT -j $SS_MARK --set-mark 5
+#    iptables -D $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK --set-mark 3
+#    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK --set-mark 3
+#    iptables -D $SS_IN_RULES -p udp --dport $PORT -j $SS_MARK --set-mark 3
+#    iptables -D $SS_OUT_RULES -p udp --sport $PORT -j $SS_MARK --set-mark 3
 }
 
 del_reject_rules () {
@@ -213,6 +229,7 @@ calc_remaining () {
                 limit=$3;
                 limits[port]=limit
                 maturity[port]=$4;
+                type[port]=$5;
             }
         }
         if(FILENAME=="'$TRAFFIC_LOG'"){
@@ -222,7 +239,7 @@ calc_remaining () {
         }
     }
     END {
-        printf("port\tlimit\tused\tremaining\tmateurity\n");
+        printf("port\tlimit\tused\tremaining\tmateurity\ttype\n");
         for(j=1;j<i;j++) {
             port=user[j];
             printf("%-5d\t", port);
@@ -242,7 +259,9 @@ calc_remaining () {
             printf("\t");
             totalrem+=remaining;
 
-            printf("%s\n", strftime("'$DATE_FORMAT'", maturity[port]));
+            printf("%s\t", strftime("'$DATE_FORMAT'", maturity[port]));
+
+            printf("%s\n", type[port])
         }
             printf("%s\t", "Total");
             print_in_gb(totallim);
@@ -327,18 +346,15 @@ check_date_against_limit () {
             echo $p >> $PORTS_ALREADY_BAN
         fi
     done
-
-    
 }
 
 get_traffic_from_iptables () {
         echo "$(iptables -nvx -L $SS_IN_RULES)" "$(iptables -nvx -L $SS_OUT_RULES)" |
         sed -nr 's/[sd]pt:([0-9]{1,5})/\1/p' |
-	sed 's/  Chain ssoutput (1 references)//p' |
         awk '
         {
            trans=$2;
-           port=$NF;
+           port=$11;
            tr[port]+=trans;
         }
         END {
