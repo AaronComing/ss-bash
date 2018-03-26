@@ -69,20 +69,19 @@ init_ipt_chains () {
 add_rules () {
     PORT=$1;
     LIMIT_TYPE=`grep "^\s*$PORT\s" $USER_FILE | awk '{print $5}'`
-    SPEED=0
     if [[ "$LIMIT_TYPE" = "t1" ]] ; then
-        SPEED=1
+        iptables -A OUTPUT -t mangle -p tcp --sport $PORT -j MARK --set-mark 5
     elif [[ "$LIMIT_TYPE" = "t2" ]] ; then
-        SPEED=10
+        :
     elif [[ "$LIMIT_TYPE" = "t3" ]] ; then
-        SPEED=50
+        :
     fi
-    iptables -A $SS_IN_RULES -p tcp --dport $PORT -m limit --limit $SPEED/s --limit-burst=1000 -j ACCEPT -i eth0
-    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -m limit --limit $SPEED/s --limit-burst=1000 -j ACCEPT -o eth0
+    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
+    iptables -A $SS_IN_RULES -p tcp --dport $PORT -j ACCEPT
 #    iptables -A $SS_IN_RULES -p tcp --dport $PORT -j ACCEPT
 #    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
-    iptables -A $SS_IN_RULES -p udp --dport $PORT -m limit --limit $SPEED/s -j ACCEPT
-    iptables -A $SS_OUT_RULES -p udp --sport $PORT -m limit --limit $SPEED/s -j ACCEPT
+    iptables -A $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
+    iptables -A $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
 
 #    iptables -A $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK --set-mark 3
 #    iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK --set-mark 3
@@ -101,18 +100,17 @@ add_reject_rules () {
 del_rules () {
     PORT=$1;
     LIMIT_TYPE=`grep "^\s*$PORT\s" $USER_FILE | awk '{print $5}'`
-    SPEED=0
     if [[ "$LIMIT_TYPE" = "t1" ]] ; then
-        SPEED=1
+        iptables -D OUTPUT -t mangle -p tcp --sport $PORT -j MARK --set-mark 5
     elif [[ "$LIMIT_TYPE" = "t2" ]] ; then
-        SPEED=10
+        :
     elif [[ "$LIMIT_TYPE" = "t3" ]] ; then
-        SPEED=50
+        :
     fi
-    iptables -D $SS_IN_RULES -p tcp --dport $PORT -m limit --limit $SPEED/s --limit-burst=1000 -j ACCEPT -i eth0
-    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -m limit --limit $SPEED/s --limit-burst=1000 -j ACCEPT -o eth0
-    iptables -D $SS_IN_RULES -p udp --dport $PORT -m limit --limit $SPEED/s -j ACCEPT
-    iptables -D $SS_OUT_RULES -p udp --sport $PORT -m limit --limit $SPEED/s -j ACCEPT
+    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
+    iptables -D $SS_IN_RULES -p tcp --dport $PORT -j ACCEPT
+    iptables -D $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
+    iptables -D $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
     
 #    iptables -D $SS_IN_RULES -p tcp --dport $PORT -j $SS_MARK --set-mark 3
 #    iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j $SS_MARK --set-mark 3
