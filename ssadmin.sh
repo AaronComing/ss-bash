@@ -69,8 +69,8 @@ create_json () {
 }
 
 run_ssserver () {
-    $SSSERVER -qq -c $JSON_FILE 2>/dev/null >/dev/null &
-    echo $! > $SSSERVER_PID 
+    $SSSERVER -c $JSON_FILE -d start --log-file /var/log/ss_persistent.log --pid-file $SSSERVER_PID 2>/dev/null >/dev/null&
+#    echo $! > $SSSERVER_PID 
 }
 
 check_ssserver () {
